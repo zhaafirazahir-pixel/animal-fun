@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Animal Fun 🐾</title>
+<title>Animal Fun 🐾 FULL PACK</title>
 <style>
   body { margin: 0; overflow: hidden; background: skyblue; }
   h1 { position: absolute; top: 10px; left: 20px; color: white; }
@@ -10,128 +10,103 @@
 </head>
 <body>
 
-<h1>🐾 Animal Fun (34 Animals!)</h1>
+<h1>🐾 Animal Fun (FULL 34 Animals)</h1>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
-// SCENE
+// BASIC SETUP
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
-// CAMERA
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0, 8, 12);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0,6,12);
 
-// RENDERER
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // LIGHT
 const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(10, 20, 10);
+light.position.set(10,20,10);
 scene.add(light);
 
 // GROUND
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(80,80),
+  new THREE.PlaneGeometry(120,120),
   new THREE.MeshLambertMaterial({color:0x228B22})
 );
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// 🐾 ANIMAL BUILDER (more detailed)
-function createAnimal(type, x, z) {
-  const group = new THREE.Group();
+// LOADER
+const loader = new THREE.GLTFLoader();
 
-  const bodyColor = Math.random() * 0xffffff;
-
-  // body
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(1.5, 0.7, 0.7),
-    new THREE.MeshLambertMaterial({ color: bodyColor })
-  );
-  group.add(body);
-
-  // head
-  const head = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.6, 0.6),
-    new THREE.MeshLambertMaterial({ color: bodyColor })
-  );
-  head.position.set(1, 0.2, 0);
-  group.add(head);
-
-  // ears (different per animal)
-  if (type.includes("rabbit") || type.includes("cat")) {
-    for (let i = 0; i < 2; i++) {
-      const ear = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.5, 0.2),
-        new THREE.MeshLambertMaterial({ color: bodyColor })
-      );
-      ear.position.set(1, 0.7, i === 0 ? -0.2 : 0.2);
-      group.add(ear);
-    }
-  }
-
-  // neck (giraffe style)
-  if (type.includes("giraffe")) {
-    const neck = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 1.2, 0.3),
-      new THREE.MeshLambertMaterial({ color: bodyColor })
-    );
-    neck.position.set(0.8, 0.8, 0);
-    group.add(neck);
-  }
-
-  // tail
-  const tail = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.2, 0.8),
-    new THREE.MeshLambertMaterial({ color: bodyColor })
-  );
-  tail.position.set(-1, 0.2, 0);
-  group.add(tail);
-
-  // legs
-  for (let i = 0; i < 4; i++) {
-    const leg = new THREE.Mesh(
-      new THREE.BoxGeometry(0.2, 0.5, 0.2),
-      new THREE.MeshLambertMaterial({ color: 0x333333 })
-    );
-    leg.position.set(i < 2 ? -0.5 : 0.5, -0.6, i % 2 === 0 ? -0.3 : 0.3);
-    group.add(leg);
-  }
-
-  group.position.set(x, 0.8, z);
-  scene.add(group);
-
-  return group;
-}
-
-// 🐾 34 ANIMAL TYPES
-const animalTypes = [
-"dog","cat","lion","tiger","elephant","giraffe","zebra","rabbit",
-"fox","wolf","bear","panda","cow","horse","sheep","goat",
-"deer","kangaroo","monkey","gorilla","hippo","rhino","pig","boar",
-"cheetah","leopard","camel","buffalo","moose","otter","raccoon","squirrel",
-"penguin","seal"
+// REAL MODELS (base animals)
+const baseModels = [
+  {name:"Flamingo", url:"https://threejs.org/examples/models/gltf/Flamingo.glb", scale:0.02},
+  {name:"Parrot", url:"https://threejs.org/examples/models/gltf/Parrot.glb", scale:0.02},
+  {name:"Stork", url:"https://threejs.org/examples/models/gltf/Stork.glb", scale:0.02}
 ];
 
-// CREATE ANIMALS
+// 34 "species names"
+const species = [
+"lion","tiger","elephant","giraffe","zebra","dog","cat","wolf",
+"fox","bear","panda","cow","horse","sheep","goat","deer",
+"kangaroo","monkey","gorilla","hippo","rhino","pig","boar","cheetah",
+"leopard","camel","buffalo","moose","otter","raccoon","squirrel","penguin",
+"seal","eagle"
+];
+
 const animals = [];
+let player = null;
 
-animalTypes.forEach((type, i) => {
-  const x = (Math.random() - 0.5) * 40;
-  const z = (Math.random() - 0.5) * 40;
-  animals.push(createAnimal(type, x, z));
+// LOAD AND CLONE
+function loadBaseModel(base, callback) {
+  loader.load(base.url, (gltf) => {
+    callback(gltf.scene, base.scale);
+  });
+}
+
+// CREATE ALL ANIMALS
+baseModels.forEach((base) => {
+  loadBaseModel(base, (model, scale) => {
+
+    for (let i = 0; i < 12; i++) {
+      if (animals.length >= 34) return;
+
+      const clone = model.clone(true);
+
+      // random color tint (makes them look different)
+      clone.traverse((child) => {
+        if (child.isMesh) {
+          child.material = child.material.clone();
+          child.material.color.set(Math.random() * 0xffffff);
+        }
+      });
+
+      clone.scale.set(scale, scale, scale);
+
+      clone.position.set(
+        (Math.random() - 0.5) * 80,
+        0,
+        (Math.random() - 0.5) * 80
+      );
+
+      scene.add(clone);
+      animals.push(clone);
+
+      if (!player) player = clone;
+    }
+  });
 });
-
-// PLAYER
-const player = animals[0];
 
 // CONTROLS
 document.addEventListener("keydown", (e) => {
-  const speed = 0.5;
+  if (!player) return;
+
+  const speed = 0.6;
 
   if (e.key === "w") player.position.z -= speed;
   if (e.key === "s") player.position.z += speed;
@@ -143,24 +118,26 @@ document.addEventListener("keydown", (e) => {
 function animate() {
   requestAnimationFrame(animate);
 
-  animals.forEach(animal => {
-    animal.position.x += (Math.random() - 0.5) * 0.03;
-    animal.position.z += (Math.random() - 0.5) * 0.03;
-    animal.rotation.y += 0.01;
+  animals.forEach(a => {
+    a.rotation.y += 0.005;
+    a.position.x += (Math.random() - 0.5) * 0.05;
+    a.position.z += (Math.random() - 0.5) * 0.05;
   });
 
-  camera.position.x = player.position.x;
-  camera.position.z = player.position.z + 12;
-  camera.lookAt(player.position);
+  if (player) {
+    camera.position.x = player.position.x;
+    camera.position.z = player.position.z + 12;
+    camera.lookAt(player.position);
+  }
 
   renderer.render(scene, camera);
 }
 animate();
 
 // RESIZE
-window.addEventListener("resize", () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth/window.innerHeight;
+addEventListener("resize", () => {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
 });
 </script>
